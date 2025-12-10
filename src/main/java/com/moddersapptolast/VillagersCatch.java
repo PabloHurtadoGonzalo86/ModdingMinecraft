@@ -20,5 +20,14 @@ public class VillagersCatch implements ModInitializer {
 		// Proceed with mild caution.
 
 		LOGGER.info("Hello Fabric world!");
+
+		LOGGER.info("Initialize my item");
+
+		ModItems.initialize();
+
+		LOGGER.info("Finish Initialize.........");
+
+
+
 	}
 }
