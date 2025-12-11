@@ -1,3 +1,4 @@
 {
-  "item.villagerscatch.suspicious_substance": "Suspicious Substance"
+  "item.villagerscatch.suspicious_substance": "Suspicious Substance",
+  "itemTooltip.villagerscatch.suspicious_substance": "¡Cuidado! Parece peligroso... Pero en realidad no lo es"
 }
