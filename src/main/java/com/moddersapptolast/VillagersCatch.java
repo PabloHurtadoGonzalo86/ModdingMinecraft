@@ -1,5 +1,6 @@
 package com.moddersapptolast;
 
+import com.moddersapptolast.component.ModComponents;
 import net.fabricmc.api.ModInitializer;
 
 import org.slf4j.Logger;
@@ -26,6 +27,13 @@ public class VillagersCatch implements ModInitializer {
 		ModItems.initialize();
 
 		LOGGER.info("Finish Initialize.........");
+
+
+		LOGGER.info("Initialize my Data component");
+
+		ModComponents.initialize();
+
+		LOGGER.info("Finish Initialize My Data Components.........");
 
 
 
