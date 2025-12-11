@@ -24,11 +24,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class VillagerNetItem extends Item {
+public class ZombieNetItem extends Item {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("VillagerNetItem");
+    private static final Logger LOGGER = LoggerFactory.getLogger("ZombieNetItem");
 
-    public VillagerNetItem(Properties settings) {
+    public ZombieNetItem(Properties settings) {
         super(settings);
     }
 
@@ -37,7 +37,7 @@ public class VillagerNetItem extends Item {
         ItemStack stack = context.getItemInHand();
         Level level = context.getLevel();
 
-        List<CompoundTag> entities = stack.get(ModComponents.CAPTURED_VILLAGERS);
+        List<CompoundTag> entities = stack.get(ModComponents.CAPTURED_ZOMBIES);
         
         if (entities != null && !entities.isEmpty()) {
             
@@ -55,14 +55,14 @@ public class VillagerNetItem extends Item {
                 });
 
                 if (newList.isEmpty()) {
-                    stack.remove(ModComponents.CAPTURED_VILLAGERS);
+                    stack.remove(ModComponents.CAPTURED_ZOMBIES);
                 } else {
-                    stack.set(ModComponents.CAPTURED_VILLAGERS, newList);
+                    stack.set(ModComponents.CAPTURED_ZOMBIES, newList);
                 }
                 
                 if (context.getPlayer() instanceof ServerPlayer sp) {
                     sp.sendSystemMessage(Component.literal(
-                            "Aldeano liberado! (" + newList.size() + "/" + VillagersCatch.MAX_ENTITIES + ")"));
+                            "Zombie liberado! (" + newList.size() + "/" + VillagersCatch.MAX_ENTITIES + ")"));
                 }
             }
 
@@ -74,11 +74,11 @@ public class VillagerNetItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay displayComponent, Consumer<Component> textConsumer, TooltipFlag type) {
-        List<CompoundTag> entities = stack.get(ModComponents.CAPTURED_VILLAGERS);
+        List<CompoundTag> entities = stack.get(ModComponents.CAPTURED_ZOMBIES);
         
         if (entities != null && !entities.isEmpty()) {
             textConsumer.accept(Component.literal(
-                    "Contiene " + entities.size() + " Aldeano(s)").withStyle(ChatFormatting.GREEN));
+                    "Contiene " + entities.size() + " Zombie(s)").withStyle(ChatFormatting.RED));
         } else {
             textConsumer.accept(Component.literal("Vacio").withStyle(ChatFormatting.GRAY));
         }
@@ -86,7 +86,7 @@ public class VillagerNetItem extends Item {
     
     @Override
     public boolean isFoil(ItemStack stack) {
-        List<CompoundTag> entities = stack.get(ModComponents.CAPTURED_VILLAGERS);
+        List<CompoundTag> entities = stack.get(ModComponents.CAPTURED_ZOMBIES);
         return entities != null && !entities.isEmpty();
     }
 

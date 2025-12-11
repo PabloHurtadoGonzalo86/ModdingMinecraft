@@ -2,26 +2,35 @@ package com.moddersapptolast.component;
 
 
 import com.moddersapptolast.VillagersCatch;
-import com.mojang.serialization.Codec;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.List;
+
 public class ModComponents {
 
-    public static final DataComponentType<CompoundTag> CAPTURED_ENTITY = Registry.register(
+    // Componente que guarda una LISTA de aldeanos (hasta 64)
+    public static final DataComponentType<List<CompoundTag>> CAPTURED_VILLAGERS = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE,
-            ResourceLocation.fromNamespaceAndPath(VillagersCatch.MOD_ID, "captured_entity"),
-            DataComponentType.<CompoundTag>builder().persistent(CompoundTag.CODEC).build()
+            ResourceLocation.fromNamespaceAndPath(VillagersCatch.MOD_ID, "captured_villagers"),
+            DataComponentType.<List<CompoundTag>>builder()
+                    .persistent(CompoundTag.CODEC.listOf())
+                    .build()
     );
 
-
+    // Componente que guarda una LISTA de zombies (hasta 64)
+    public static final DataComponentType<List<CompoundTag>> CAPTURED_ZOMBIES = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
+            ResourceLocation.fromNamespaceAndPath(VillagersCatch.MOD_ID, "captured_zombies"),
+            DataComponentType.<List<CompoundTag>>builder()
+                    .persistent(CompoundTag.CODEC.listOf())
+                    .build()
+    );
 
     public static void initialize() {
         VillagersCatch.LOGGER.info("Registering {} components", VillagersCatch.MOD_ID);
-        // Technically this method can stay empty, but some developers like to notify
-        // the console, that certain parts of the mod have been successfully initialized
     }
 }

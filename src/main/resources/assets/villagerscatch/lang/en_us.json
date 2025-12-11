@@ -1,4 +1,6 @@
 {
   "item.villagerscatch.suspicious_substance": "Suspicious Substance",
-  "itemTooltip.villagerscatch.suspicious_substance": "¡Cuidado! Parece peligroso... Pero en realidad no lo es"
+  "itemTooltip.villagerscatch.suspicious_substance": "¡Cuidado! Parece peligroso... Pero en realidad no lo es",
+  "item.villagerscatch.villager_net": "Villager Net",
+  "item.villagerscatch.zombie_net": "Zombie Net"
 }
