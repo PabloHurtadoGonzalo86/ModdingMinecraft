@@ -1,0 +1,14 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "/ /",
+        " / "
+    ],
+    "key": {
+        "/": "villagerscatch:suspicious_substance"
+    },
+    "result": {
+        "id": "villagerscatch:zombie_net",
+        "count": 1
+    }
+}
