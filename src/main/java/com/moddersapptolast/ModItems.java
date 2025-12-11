@@ -1,5 +1,6 @@
 package com.moddersapptolast;
 
+import com.moddersapptolast.item.VillagerNetItem;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.registry.CompostingChanceRegistry;
 import net.fabricmc.fabric.api.registry.FuelRegistryEvents;
@@ -16,6 +17,10 @@ import java.util.function.Function;
 public class ModItems {
 
     public static final Item SUSPICIOUS_SUBSTANCE = register("suspicious_substance", SuspiciousSubstanceItem::new, new Item.Properties());
+
+
+    public static final Item VILLAGER_NET = register("villager_net", VillagerNetItem::new, new Item.Properties());
+
 
     public static Item register(String name, Function<Item.Properties, Item> itemFactory, Item.Properties settings) {
         // Create the item key.
@@ -35,6 +40,12 @@ public class ModItems {
 // And register an event handler that adds our suspicious item to the ingredients group.
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS)
                 .register((itemGroup) -> itemGroup.accept(ModItems.SUSPICIOUS_SUBSTANCE));
+
+
+        // Get the event for modifying entries in the ingredients group.
+// And register an event handler that adds our suspicious item to the ingredients group.
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
+                .register((itemGroup) -> itemGroup.accept(ModItems.VILLAGER_NET));
 
 
         // Add the suspicious substance to the composting registry with a 30% chance of increasing the composter's level.
