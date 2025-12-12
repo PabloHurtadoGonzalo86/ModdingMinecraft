@@ -2,6 +2,7 @@ package com.moddersapptolast.item;
 
 import com.moddersapptolast.VillagersCatch;
 import com.moddersapptolast.component.ModComponents;
+import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -12,6 +13,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
@@ -19,12 +21,13 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class VillagerNetItem extends Item {
+public class VillagerNetItem extends Item implements PolymerItem {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("VillagerNetItem");
 
@@ -88,6 +91,12 @@ public class VillagerNetItem extends Item {
     public boolean isFoil(ItemStack stack) {
         List<CompoundTag> entities = stack.get(ModComponents.CAPTURED_VILLAGERS);
         return entities != null && !entities.isEmpty();
+    }
+
+    @Override
+    public Item getPolymerItem(ItemStack itemStack, PacketContext context) {
+        // Los clientes vanilla verán este item como una caña de pescar
+        return Items.FISHING_ROD;
     }
 
 }
