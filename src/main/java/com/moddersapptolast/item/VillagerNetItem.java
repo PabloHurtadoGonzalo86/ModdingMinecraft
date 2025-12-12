@@ -65,7 +65,7 @@ public class VillagerNetItem extends Item implements PolymerItem {
                 
                 if (context.getPlayer() instanceof ServerPlayer sp) {
                     sp.sendSystemMessage(Component.literal(
-                            "Aldeano liberado! (" + newList.size() + "/" + VillagersCatch.MAX_ENTITIES + ")"));
+                            "Aldeano liberado! (" + newList.size() + "/" + VillagersCatch.MAX_ENTITIES + ")"), true);
                 }
             }
 

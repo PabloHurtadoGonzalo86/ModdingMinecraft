@@ -65,7 +65,7 @@ public class ZombieNetItem extends Item implements PolymerItem {
                 
                 if (context.getPlayer() instanceof ServerPlayer sp) {
                     sp.sendSystemMessage(Component.literal(
-                            "Zombie liberado! (" + newList.size() + "/" + VillagersCatch.MAX_ENTITIES + ")"));
+                            "Zombie liberado! (" + newList.size() + "/" + VillagersCatch.MAX_ENTITIES + ")"), true);
                 }
             }
 

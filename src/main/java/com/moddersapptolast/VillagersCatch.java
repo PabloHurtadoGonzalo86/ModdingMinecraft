@@ -80,7 +80,7 @@ public class VillagersCatch implements ModInitializer {
 
 		if (entities.size() >= MAX_ENTITIES) {
 			if (!world.isClientSide() && player instanceof ServerPlayer sp) {
-				sp.sendSystemMessage(Component.literal("La red esta llena! (64/64)"));
+				sp.sendSystemMessage(Component.literal("La red esta llena! (64/64)"), true);
 			}
 			return InteractionResult.FAIL;
 		}
@@ -105,7 +105,7 @@ public class VillagersCatch implements ModInitializer {
 				entity.discard();
 
 				serverPlayer.sendSystemMessage(Component.literal(
-						entityName + " atrapado! (" + newList.size() + "/" + MAX_ENTITIES + ")"));
+						entityName + " atrapado! (" + newList.size() + "/" + MAX_ENTITIES + ")"), true);
 
 				LOGGER.info("{} capturado! Total: {}", entityName, newList.size());
 			}
