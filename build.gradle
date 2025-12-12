@@ -39,6 +39,7 @@ dependencies {
 	
 	// Polymer - Server-side content library
 	modImplementation include("eu.pb4:polymer-core:${project.polymer_version}")
+	modImplementation include("eu.pb4:polymer-resource-pack:${project.polymer_version}")
 }
 
 processResources {

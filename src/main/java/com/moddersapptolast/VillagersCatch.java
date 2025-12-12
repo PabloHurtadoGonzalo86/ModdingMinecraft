@@ -1,6 +1,7 @@
 package com.moddersapptolast;
 
 import com.moddersapptolast.component.ModComponents;
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -29,6 +30,10 @@ public class VillagersCatch implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		LOGGER.info("Hello Fabric world!");
+
+		// Registrar los assets del mod para que Polymer los incluya en el resource pack
+		// NO usamos markAsRequired() para permitir que clientes vanilla entren sin problemas
+		PolymerResourcePackUtils.addModAssets(MOD_ID);
 
 		LOGGER.info("Initialize my item");
 		ModItems.initialize();
