@@ -2,6 +2,7 @@ package com.moddersapptolast.component;
 
 
 import com.moddersapptolast.VillagersCatch;
+import eu.pb4.polymer.core.api.other.PolymerComponent;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -31,6 +32,8 @@ public class ModComponents {
     );
 
     public static void initialize() {
-        VillagersCatch.LOGGER.info("Registering {} components", VillagersCatch.MOD_ID);
+        // Registrar componentes con Polymer para excluirlos del registry sync
+        PolymerComponent.registerDataComponent(CAPTURED_VILLAGERS, CAPTURED_ZOMBIES);
+        VillagersCatch.LOGGER.info("Registering {} components with Polymer", VillagersCatch.MOD_ID);
     }
 }
