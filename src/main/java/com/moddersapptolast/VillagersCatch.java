@@ -1,6 +1,8 @@
 package com.moddersapptolast;
 
 import com.moddersapptolast.component.ModComponents;
+import com.moddersapptolast.component.IronFarmMonitor;
+import com.moddersapptolast.component.IronMonitorCommand;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -42,6 +44,11 @@ public class VillagersCatch implements ModInitializer {
 		LOGGER.info("Initialize my Data component");
 		ModComponents.initialize();
 		LOGGER.info("Finish Initialize My Data Components.........");
+
+		LOGGER.info("Initialize Iron Farm Monitor");
+		IronFarmMonitor.initialize();
+		IronMonitorCommand.register();
+		LOGGER.info("Finish Initialize Iron Farm Monitor.........");
 
 		registerEvents();
 		LOGGER.info("Events registered!");
