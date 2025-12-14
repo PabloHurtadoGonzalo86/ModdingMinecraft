@@ -7,28 +7,31 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.phys.AABB;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Iron Farm Monitor - Server-side golem spawn tracker.
+ * Iron Farm Monitor - Real-time server-side golem spawn tracker.
+ * Compatible with Polymer - all messages sent only to the player.
  * 
  * Uses Fabric API events (verified from official fabric-lifecycle-events-v1):
  * - ServerEntityEvents.ENTITY_LOAD: Detects when Iron Golems spawn
  * - ServerTickEvents.END_SERVER_TICK: Updates action bar display
  * 
- * Based on official Fabric test code: ServerEntityLifecycleTests.java
+ * Detection criteria for villager-spawned golems:
+ * - IronGolem.isPlayerCreated() == false (not built by player)
+ * - entity.tickCount <= 1 (newly spawned, not loaded from chunk)
+ * - Villagers present in the monitoring area
+ * 
+ * Based on official Fabric API and Minecraft 1.21.10 mechanics.
  */
 public class IronFarmMonitor {
-    
-    private static final Logger LOGGER = LoggerFactory.getLogger("IronFarmMonitor");
     
     // Store monitoring data per player (by UUID)
     private static final Map<UUID, PlayerMonitorData> playerData = new HashMap<>();
@@ -38,13 +41,11 @@ public class IronFarmMonitor {
      * Called from main mod initializer.
      */
     public static void initialize() {
-        LOGGER.info("Initializing Iron Farm Monitor...");
-        
         // Register entity load event to detect golem spawns
         // Based on: ServerEntityEvents.ENTITY_LOAD from fabric-lifecycle-events-v1
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-            if (entity instanceof IronGolem) {
-                onGolemSpawn(entity, world);
+            if (entity instanceof IronGolem golem) {
+                onGolemLoaded(golem, world);
             }
         });
         
@@ -58,17 +59,43 @@ public class IronFarmMonitor {
                 }
             }
         });
-        
-        LOGGER.info("Iron Farm Monitor initialized!");
     }
     
     /**
      * Called when an Iron Golem is loaded into the world.
-     * Checks if the golem spawned within any player's monitoring area.
+     * Filters to only count golems spawned by villagers (not player-built or chunk-loaded).
+     * 
+     * Detection logic:
+     * 1. isPlayerCreated() == false: Golem was NOT built by a player
+     * 2. tickCount <= 1: Entity was just created (not loaded from existing chunk)
+     * 3. Villagers nearby: Confirms this is likely a villager-spawned golem
      */
-    private static void onGolemSpawn(Entity entity, ServerLevel world) {
-        BlockPos golemPos = entity.blockPosition();
+    private static void onGolemLoaded(IronGolem golem, ServerLevel world) {
+        // Filter 1: Skip player-created golems (built with iron blocks + pumpkin)
+        if (golem.isPlayerCreated()) {
+            return;
+        }
         
+        // Filter 2: Skip golems loaded from chunks (tickCount > 1 means already existed)
+        // tickCount is 0 on first tick, 1 on second tick after spawn
+        if (golem.tickCount > 1) {
+            return;
+        }
+        
+        BlockPos golemPos = golem.blockPosition();
+        
+        // Filter 3: Verify villagers are nearby (within 17 blocks - spawn range)
+        AABB villagerCheckArea = new AABB(
+            golemPos.getX() - 17, golemPos.getY() - 13, golemPos.getZ() - 17,
+            golemPos.getX() + 17, golemPos.getY() + 13, golemPos.getZ() + 17
+        );
+        
+        List<Villager> nearbyVillagers = world.getEntitiesOfClass(Villager.class, villagerCheckArea);
+        if (nearbyVillagers.isEmpty()) {
+            return;
+        }
+        
+        // This is a villager-spawned golem! Notify all monitoring players in range
         for (Map.Entry<UUID, PlayerMonitorData> entry : playerData.entrySet()) {
             PlayerMonitorData data = entry.getValue();
             
@@ -76,15 +103,21 @@ public class IronFarmMonitor {
                 continue;
             }
             
-            AABB area = data.getMonitoringArea();
-            if (area != null && area.contains(golemPos.getX(), golemPos.getY(), golemPos.getZ())) {
-                data.incrementGolemCount();
+            AABB monitorArea = data.getMonitoringArea();
+            if (monitorArea != null && monitorArea.contains(golemPos.getX(), golemPos.getY(), golemPos.getZ())) {
+                // Record the spawn with real timestamp
+                data.recordGolemSpawn();
                 
-                // Find player and notify
+                // Find player and send notification (only to the player, not to server console)
                 ServerPlayer player = world.getServer().getPlayerList().getPlayer(entry.getKey());
                 if (player != null) {
-                    LOGGER.info("Iron Golem spawned in {}'s monitoring area. Total: {}", 
-                        player.getName().getString(), data.getGolemCount());
+                    // Send chat notification for the spawn event - only to this player
+                    String spawnMsg = String.format(
+                        "§a⚙ §fGolem #%d spawneado! §7(%.1fs desde el anterior)",
+                        data.getGolemCount(),
+                        data.getSecondsSinceLastSpawn()
+                    );
+                    player.sendSystemMessage(Component.literal(spawnMsg), false);
                 }
             }
         }
@@ -92,6 +125,8 @@ public class IronFarmMonitor {
     
     /**
      * Updates the action bar display for a player if they are monitoring.
+     * Shows real-time stats based on actual spawn detections.
+     * Uses direct packet sending for Polymer compatibility.
      */
     private static void updatePlayerDisplay(ServerPlayer player) {
         PlayerMonitorData data = playerData.get(player.getUUID());
@@ -105,25 +140,31 @@ public class IronFarmMonitor {
             data.setCenterPos(player.blockPosition());
         }
         
-        // Build display message
+        // Build display message with real-time data
         StringBuilder message = new StringBuilder();
         message.append("§6⚙ §eGolems: §f").append(data.getGolemCount());
         
-        // Show rate if we have data
+        // Show rate based on actual spawns
         double rate = data.getGolemsPerMinute();
         if (rate > 0) {
             message.append(" §7| §eRate: §f").append(String.format("%.1f", rate)).append("/min");
         }
         
-        // Show countdown timer if enabled
-        if (data.isTimerEnabled()) {
-            int seconds = data.getSecondsUntilNextSpawn();
-            if (seconds >= 0) {
-                message.append(" §7| §ePróximo: §f~").append(seconds).append("s");
-            }
+        // Show time since last spawn (real, not calculated)
+        double secondsSinceLast = data.getSecondsSinceLastSpawn();
+        if (data.getGolemCount() > 0) {
+            message.append(" §7| §eÚltimo: §f").append(String.format("%.0f", secondsSinceLast)).append("s");
+        } else {
+            message.append(" §7| §eEsperando spawn...");
         }
         
-        // Send action bar packet
+        // Show average interval if we have enough data
+        double avgInterval = data.getAverageSpawnInterval();
+        if (avgInterval > 0) {
+            message.append(" §7| §ePromedio: §f").append(String.format("%.1f", avgInterval)).append("s");
+        }
+        
+        // Send action bar packet directly to player (Polymer compatible)
         Component text = Component.literal(message.toString());
         player.connection.send(new ClientboundSetActionBarTextPacket(text));
     }
@@ -132,8 +173,11 @@ public class IronFarmMonitor {
     
     /**
      * Starts monitoring for a player with a fixed position.
+     * Automatically analyzes the iron farm structure.
+     * 
+     * @return FarmAnalysis with information about the detected farm structure
      */
-    public static void startMonitoring(ServerPlayer player, int radius) {
+    public static IronFarmAnalyzer.FarmAnalysis startMonitoring(ServerPlayer player, int radius) {
         PlayerMonitorData data = getOrCreateData(player);
         data.setMonitoring(true);
         data.setFollowPlayer(false);
@@ -142,14 +186,20 @@ public class IronFarmMonitor {
         data.setStartTime(System.currentTimeMillis());
         data.resetStats();
         
-        LOGGER.info("Started monitoring for {} at {} with radius {}", 
-            player.getName().getString(), data.getCenterPos(), radius);
+        // Analyze the farm structure
+        IronFarmAnalyzer.FarmAnalysis analysis = IronFarmAnalyzer.analyzeFarm(player, radius);
+        data.setLastAnalysis(analysis);
+        
+        return analysis;
     }
     
     /**
      * Starts monitoring for a player that follows their position.
+     * Automatically analyzes the iron farm structure.
+     * 
+     * @return FarmAnalysis with information about the detected farm structure
      */
-    public static void startMonitoringFollow(ServerPlayer player, int radius) {
+    public static IronFarmAnalyzer.FarmAnalysis startMonitoringFollow(ServerPlayer player, int radius) {
         PlayerMonitorData data = getOrCreateData(player);
         data.setMonitoring(true);
         data.setFollowPlayer(true);
@@ -158,8 +208,32 @@ public class IronFarmMonitor {
         data.setStartTime(System.currentTimeMillis());
         data.resetStats();
         
-        LOGGER.info("Started follow monitoring for {} with radius {}", 
-            player.getName().getString(), radius);
+        // Analyze the farm structure
+        IronFarmAnalyzer.FarmAnalysis analysis = IronFarmAnalyzer.analyzeFarm(player, radius);
+        data.setLastAnalysis(analysis);
+        
+        return analysis;
+    }
+    
+    /**
+     * Re-analyzes the farm structure for a player.
+     * Useful when the player wants to refresh the farm status.
+     */
+    public static IronFarmAnalyzer.FarmAnalysis reanalyzeFarm(ServerPlayer player) {
+        PlayerMonitorData data = playerData.get(player.getUUID());
+        if (data == null || !data.isMonitoring()) {
+            return null;
+        }
+        
+        // Update center if following player
+        if (data.isFollowPlayer()) {
+            data.setCenterPos(player.blockPosition());
+        }
+        
+        IronFarmAnalyzer.FarmAnalysis analysis = IronFarmAnalyzer.analyzeFarm(player, data.getRadius());
+        data.setLastAnalysis(analysis);
+        
+        return analysis;
     }
     
     /**
@@ -169,29 +243,6 @@ public class IronFarmMonitor {
         PlayerMonitorData data = playerData.get(player.getUUID());
         if (data != null) {
             data.stopMonitoring();
-            LOGGER.info("Stopped monitoring for {}", player.getName().getString());
-        }
-    }
-    
-    /**
-     * Enables the countdown timer with expected golems per hour.
-     */
-    public static void enableTimer(ServerPlayer player, int golemsPerHour) {
-        PlayerMonitorData data = getOrCreateData(player);
-        data.setTimerEnabled(true);
-        data.setGolemsPerHour(golemsPerHour);
-        
-        LOGGER.info("Enabled timer for {} with {} golems/hour", 
-            player.getName().getString(), golemsPerHour);
-    }
-    
-    /**
-     * Disables the countdown timer.
-     */
-    public static void disableTimer(ServerPlayer player) {
-        PlayerMonitorData data = playerData.get(player.getUUID());
-        if (data != null) {
-            data.setTimerEnabled(false);
         }
     }
     
@@ -202,7 +253,6 @@ public class IronFarmMonitor {
         PlayerMonitorData data = playerData.get(player.getUUID());
         if (data != null) {
             data.resetStats();
-            LOGGER.info("Reset stats for {}", player.getName().getString());
         }
     }
     

@@ -8,6 +8,8 @@ import java.util.List;
 
 /**
  * Stores monitoring data for each player using the Iron Farm Monitor.
+ * 
+ * Now tracks real spawn times instead of calculated estimates.
  * Based on Fabric API lifecycle patterns from fabric-lifecycle-events-v1.
  */
 public class PlayerMonitorData {
@@ -20,15 +22,15 @@ public class PlayerMonitorData {
     private BlockPos centerPos = null;
     private int radius = 32;
     
-    // Statistics
+    // Real-time statistics (no more theoretical calculations)
     private int golemCount = 0;
     private long startTime = 0;
-    private final List<Long> spawnTimes = new ArrayList<>();
-    
-    // Timer configuration
-    private boolean timerEnabled = false;
-    private int golemsPerHour = 350;
+    private final List<Long> spawnTimes = new ArrayList<>();  // Real spawn timestamps
     private long lastSpawnTime = 0;
+    private long previousSpawnTime = 0;  // For calculating interval between spawns
+    
+    // Farm analysis cache
+    private IronFarmAnalyzer.FarmAnalysis lastAnalysis = null;
     
     // Getters and Setters
     public boolean isMonitoring() {
@@ -67,8 +69,13 @@ public class PlayerMonitorData {
         return golemCount;
     }
     
-    public void incrementGolemCount() {
+    /**
+     * Records a real golem spawn event with timestamp.
+     * Called when a villager-spawned golem is detected in the monitoring area.
+     */
+    public void recordGolemSpawn() {
         this.golemCount++;
+        this.previousSpawnTime = this.lastSpawnTime;
         this.lastSpawnTime = System.currentTimeMillis();
         this.spawnTimes.add(this.lastSpawnTime);
         
@@ -86,24 +93,47 @@ public class PlayerMonitorData {
         this.startTime = startTime;
     }
     
-    public boolean isTimerEnabled() {
-        return timerEnabled;
-    }
-    
-    public void setTimerEnabled(boolean timerEnabled) {
-        this.timerEnabled = timerEnabled;
-    }
-    
-    public int getGolemsPerHour() {
-        return golemsPerHour;
-    }
-    
-    public void setGolemsPerHour(int golemsPerHour) {
-        this.golemsPerHour = golemsPerHour;
-    }
-    
     public long getLastSpawnTime() {
         return lastSpawnTime;
+    }
+    
+    /**
+     * Gets the time in seconds since the last golem spawn.
+     * Returns 0 if no golem has spawned yet.
+     */
+    public double getSecondsSinceLastSpawn() {
+        if (lastSpawnTime == 0) {
+            return 0;
+        }
+        return (System.currentTimeMillis() - lastSpawnTime) / 1000.0;
+    }
+    
+    /**
+     * Gets the interval in seconds between the last two spawns.
+     * Returns 0 if less than 2 golems have spawned.
+     */
+    public double getLastSpawnInterval() {
+        if (previousSpawnTime == 0 || lastSpawnTime == 0) {
+            return 0;
+        }
+        return (lastSpawnTime - previousSpawnTime) / 1000.0;
+    }
+    
+    /**
+     * Gets the average spawn interval based on all recorded spawns.
+     * Returns 0 if less than 2 golems have spawned.
+     */
+    public double getAverageSpawnInterval() {
+        if (spawnTimes.size() < 2) {
+            return 0;
+        }
+        
+        long firstSpawn = spawnTimes.get(0);
+        long lastSpawn = spawnTimes.get(spawnTimes.size() - 1);
+        long totalTimeMs = lastSpawn - firstSpawn;
+        int intervals = spawnTimes.size() - 1;
+        
+        return (totalTimeMs / 1000.0) / intervals;
     }
     
     /**
@@ -121,7 +151,7 @@ public class PlayerMonitorData {
     }
     
     /**
-     * Calculates golems per minute based on recent spawn times.
+     * Calculates golems per minute based on recent spawn times (real data).
      */
     public double getGolemsPerMinute() {
         if (spawnTimes.size() < 2) {
@@ -142,25 +172,28 @@ public class PlayerMonitorData {
     }
     
     /**
-     * Calculates estimated time until next golem spawn based on configured rate.
-     * Returns seconds remaining.
+     * Gets the projected golems per hour based on current spawn rate.
      */
-    public int getSecondsUntilNextSpawn() {
-        if (!timerEnabled || golemsPerHour <= 0) {
-            return -1;
-        }
-        
-        // Calculate spawn interval in milliseconds
-        double spawnIntervalMs = (3600000.0 / golemsPerHour);
-        
-        long timeSinceLastSpawn = System.currentTimeMillis() - lastSpawnTime;
-        int remainingMs = (int) (spawnIntervalMs - timeSinceLastSpawn);
-        
-        if (remainingMs < 0) {
+    public double getProjectedGolemsPerHour() {
+        double avgInterval = getAverageSpawnInterval();
+        if (avgInterval <= 0) {
             return 0;
         }
-        
-        return remainingMs / 1000;
+        return 3600.0 / avgInterval;
+    }
+    
+    /**
+     * Gets the last farm analysis result.
+     */
+    public IronFarmAnalyzer.FarmAnalysis getLastAnalysis() {
+        return lastAnalysis;
+    }
+    
+    /**
+     * Sets the last farm analysis result.
+     */
+    public void setLastAnalysis(IronFarmAnalyzer.FarmAnalysis analysis) {
+        this.lastAnalysis = analysis;
     }
     
     /**
@@ -171,6 +204,7 @@ public class PlayerMonitorData {
         this.startTime = System.currentTimeMillis();
         this.spawnTimes.clear();
         this.lastSpawnTime = 0;
+        this.previousSpawnTime = 0;
     }
     
     /**
@@ -180,7 +214,7 @@ public class PlayerMonitorData {
         this.monitoring = false;
         this.followPlayer = false;
         this.centerPos = null;
-        this.timerEnabled = false;
+        this.lastAnalysis = null;
         resetStats();
     }
 }
